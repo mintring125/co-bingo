@@ -426,28 +426,20 @@ export function renderGame(room, myPlayerId, handlers) {
 
       <div class="board-wrap">
         ${board ? `
-          <div class="board-grid game-board" style="--size:${size}">
+          <div class="board-grid game-board ${isMyTurn ? 'my-turn-glow' : ''}" style="--size:${size}">
             ${board.flat().map((num, idx) => {
         const r = Math.floor(idx / size);
         const c = idx % size;
         const marked = calledNumbers.includes(num);
         const inLine = marked && isCellInBingoLine(board, calledNumbers, r, c);
-        return `<div class="board-cell game-cell ${marked ? 'marked' : ''} ${inLine ? 'bingo' : ''}">${num}</div>`;
+        return `<div class="board-cell game-cell ${marked ? 'marked' : ''} ${inLine ? 'bingo' : ''}" data-num="${num}">${num}</div>`;
       }).join('')}
           </div>
         ` : '<div class="no-board">보드 없음</div>'}
       </div>
 
       ${isMyTurn ? `
-        <div class="numpad-section">
-          <p class="numpad-label">✨ 숫자를 호출하세요!</p>
-          <div class="numpad">
-            ${Array.from({ length: size * size }, (_, i) => i + 1).map(n => `
-              <button class="numpad-btn ${calledNumbers.includes(n) ? 'called' : ''}"
-                      data-num="${n}" ${calledNumbers.includes(n) ? 'disabled' : ''}>${n}</button>
-            `).join('')}
-          </div>
-        </div>
+        <div class="turn-hint">✨ 위 빙고판에서 부를 숫자를 터치하세요!</div>
       ` : ''}
 
       <div class="rank-list glass-card">
@@ -467,9 +459,11 @@ export function renderGame(room, myPlayerId, handlers) {
   if (strip) strip.scrollLeft = strip.scrollWidth;
 
   if (isMyTurn) {
-    document.querySelector('.numpad')?.addEventListener('click', e => {
-      const btn = e.target.closest('.numpad-btn');
-      if (btn && !btn.disabled) handlers.onCallNumber(parseInt(btn.dataset.num));
+    document.querySelector('.game-board')?.addEventListener('click', e => {
+      const cell = e.target.closest('.game-cell');
+      if (cell && !cell.classList.contains('marked')) {
+        handlers.onCallNumber(parseInt(cell.dataset.num));
+      }
     });
   }
 

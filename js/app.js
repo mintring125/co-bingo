@@ -249,6 +249,7 @@ async function showGame(roomId) {
   State.roomId = roomId;
   let prevCalledLen = -1;
   let prevTurnId = null;
+  let prevBingos = {};
 
   State.unsubscribe = onRoomChange(roomId, room => {
     State.room = room;
@@ -259,8 +260,22 @@ async function showGame(roomId) {
 
     const called = normalizeArray(room.calledNumbers);
 
-    // Sound: new number called
+    // Calculate current bingos for all active boards
+    const currentBingos = {};
+    Object.entries(room.players ?? {}).forEach(([pid, p]) => {
+      if (!p.board) return;
+      currentBingos[pid] = countBingoLines(normalizeBoard(p.board), called);
+    });
+
+    // Sound & Notifications: new number called
     if (called.length > prevCalledLen && prevCalledLen >= 0) {
+      // Toast notifications for other players' bingos
+      Object.entries(currentBingos).forEach(([pid, lines]) => {
+        if (pid !== State.playerId && prevBingos[pid] !== undefined && lines > prevBingos[pid]) {
+          showToast(`🎉 ${room.players[pid].name}님이 ${lines}줄 빙고 완성!`, 4000);
+        }
+      });
+
       const myPlayer = room.players?.[State.playerId];
       const board = myPlayer?.board ? normalizeBoard(myPlayer.board) : null;
       if (board) {
@@ -273,6 +288,7 @@ async function showGame(roomId) {
       }
     }
     prevCalledLen = called.length;
+    prevBingos = currentBingos;
 
     // Sound: my turn
     const turnOrder = normalizeArray(room.turnOrder);
