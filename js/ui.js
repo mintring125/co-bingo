@@ -414,6 +414,7 @@ export function renderGame(room, myPlayerId, handlers) {
           ${isMyTurn ? '🎯 내 차례!' : `${escHtml(players[currentTurnId]?.name ?? '')}님 차례`}
         </div>
         <div class="bingo-pill">🎊 ${myBingo}/${winCondition}</div>
+        <button id="game-qr-btn" class="btn btn-ghost btn-sm game-qr-btn" title="초대 QR">📱</button>
         ${room.host === myPlayerId ? '<button id="close-room-btn" class="btn btn-danger btn-sm btn-close-game" title="방 닫기">✕</button>' : ''}
       </div>
 
@@ -492,13 +493,14 @@ export function renderGame(room, myPlayerId, handlers) {
         );
       });
 
-      const onRelease = () => stopAndProcess();
+      const onRelease = () => { stopAndProcess(); resetBtn(); };
       micBtn.addEventListener('pointerup',     onRelease);
       micBtn.addEventListener('pointercancel', onRelease);
     }
   }
 
   document.getElementById('close-room-btn')?.addEventListener('click', handlers.onCloseRoom);
+  document.getElementById('game-qr-btn')?.addEventListener('click', () => showQrOverlay(room.id));
 
   _prevCalledLen = calledNumbers.length;
 }
@@ -585,6 +587,30 @@ function spawnConfetti() {
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 5000);
   }
+}
+
+// ─── QR Overlay ───────────────────────────────────────────────────────────────
+
+function showQrOverlay(roomId) {
+  document.getElementById('qr-overlay')?.remove();
+  const roomUrl = `${location.origin}${location.pathname}?room=${roomId}`;
+  const el = document.createElement('div');
+  el.id = 'qr-overlay';
+  el.className = 'qr-overlay';
+  el.innerHTML = `
+    <div class="qr-overlay-card glass-card">
+      <div class="qr-overlay-header">
+        <span class="qr-overlay-title">게임 참가 QR</span>
+        <button id="qr-overlay-close" class="btn btn-ghost btn-sm">✕</button>
+      </div>
+      <div id="qr-overlay-container" class="qr-overlay-container"></div>
+      <div class="qr-overlay-code">${roomId}</div>
+    </div>
+  `;
+  document.body.appendChild(el);
+  generateQR('qr-overlay-container', roomUrl);
+  document.getElementById('qr-overlay-close').onclick = () => el.remove();
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
 }
 
 // ─── Util ─────────────────────────────────────────────────────────────────────

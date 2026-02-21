@@ -1139,6 +1139,65 @@ body {
   }
 }
 
+/* ─── Game QR Button ────────────────────────────────────────────────────────── */
+.game-qr-btn {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  min-width: auto;
+}
+
+/* ─── QR Overlay ─────────────────────────────────────────────────────────────── */
+.qr-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 8000;
+  padding: 24px;
+}
+
+.qr-overlay-card {
+  width: 100%;
+  max-width: 280px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.qr-overlay-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qr-overlay-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.qr-overlay-container {
+  background: white;
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-overlay-code {
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: var(--primary);
+}
+
 /* ─── Mic Button ────────────────────────────────────────────────────────────── */
 .mic-row {
   display: flex;
