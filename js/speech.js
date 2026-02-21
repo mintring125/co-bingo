@@ -68,6 +68,13 @@ export function stopListening() {
   }
 }
 
+/** Stop recording and let the engine process buffered audio (fires onresult). */
+export function stopAndProcess() {
+  if (_recognition) {
+    try { _recognition.stop(); } catch (_) {}
+  }
+}
+
 // ─── Number Parser ────────────────────────────────────────────────────────────
 
 const SINO_MAP = {
