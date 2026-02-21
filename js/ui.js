@@ -483,6 +483,7 @@ export function renderGame(room, myPlayerId, handlers) {
         micBtn.querySelector('.mic-label').textContent = '누르고 말하기';
       };
 
+      micBtn.addEventListener('contextmenu', e => e.preventDefault());
       micBtn.addEventListener('pointerdown', (e) => {
         e.preventDefault(); // prevent text selection / context menu on long-press
         micBtn.classList.add('listening');
