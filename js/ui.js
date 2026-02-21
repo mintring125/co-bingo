@@ -4,6 +4,7 @@
  */
 import { countBingoLines, isCellInBingoLine, generateRandomBoard, normalizeArray, normalizeBoard } from './game.js';
 import { generateQR } from './qr.js';
+import { isSpeechSupported, startListening, stopListening } from './speech.js';
 
 const app = () => document.getElementById('app');
 
@@ -440,6 +441,14 @@ export function renderGame(room, myPlayerId, handlers) {
 
       ${isMyTurn ? `
         <div class="turn-hint">✨ 위 빙고판에서 부를 숫자를 터치하세요!</div>
+        ${isSpeechSupported() ? `
+          <div class="mic-row">
+            <button id="mic-btn" class="btn-mic" title="음성으로 숫자 부르기">
+              <span class="mic-icon">🎤</span>
+              <span class="mic-label">눌러서 말하기</span>
+            </button>
+          </div>
+        ` : ''}
       ` : ''}
 
       <div class="rank-list glass-card">
@@ -465,6 +474,37 @@ export function renderGame(room, myPlayerId, handlers) {
         handlers.onCallNumber(parseInt(cell.dataset.num));
       }
     });
+
+    const micBtn = document.getElementById('mic-btn');
+    if (micBtn) {
+      let _listening = false;
+      micBtn.addEventListener('click', () => {
+        if (_listening) {
+          stopListening();
+          _listening = false;
+          micBtn.classList.remove('listening');
+          micBtn.querySelector('.mic-label').textContent = '눌러서 말하기';
+        } else {
+          _listening = true;
+          micBtn.classList.add('listening');
+          micBtn.querySelector('.mic-label').textContent = '듣는 중...';
+          startListening(
+            (num) => {
+              _listening = false;
+              micBtn.classList.remove('listening');
+              micBtn.querySelector('.mic-label').textContent = '눌러서 말하기';
+              handlers.onCallNumber(num);
+            },
+            (msg) => {
+              _listening = false;
+              micBtn.classList.remove('listening');
+              micBtn.querySelector('.mic-label').textContent = '눌러서 말하기';
+              if (msg) showToast(msg);
+            },
+          );
+        }
+      });
+    }
   }
 
   document.getElementById('close-room-btn')?.addEventListener('click', handlers.onCloseRoom);
