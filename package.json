@@ -1,0 +1,13 @@
+{
+  "name": "co-bingo",
+  "version": "1.0.0",
+  "description": "QR 코드로 연결하는 실시간 멀티플레이어 빙고 게임",
+  "private": true,
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve . --listen 3000"
+  },
+  "keywords": ["bingo", "multiplayer", "firebase", "realtime"],
+  "author": "",
+  "license": "MIT"
+}
