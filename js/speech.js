@@ -20,26 +20,38 @@ export function startListening(onResult, onError) {
 
   _recognition = new SR();
   _recognition.lang = 'ko-KR';
-  _recognition.interimResults = false;
+  _recognition.interimResults = true;   // lets engine process audio eagerly (helps short speech)
   _recognition.maxAlternatives = 5;
   _recognition.continuous = false;
 
+  let _done = false;
+  let _lastRaw = ''; // tracks latest transcript for onend fallback
+
   _recognition.onresult = (event) => {
-    const alts = Array.from(event.results[0]);
-    for (const alt of alts) {
-      const raw = alt.transcript.trim();
-      const num = parseSpokenNumber(raw);
-      if (num !== null) {
-        onResult(num, raw);
-        return;
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const result = event.results[i];
+      const alts = Array.from(result);
+
+      // Always update last known transcript (used as onend fallback)
+      const t = alts[0]?.transcript?.trim();
+      if (t) _lastRaw = t;
+
+      // Only parse FINAL results — avoids "십" matching mid-word when saying "십오"
+      if (!result.isFinal) continue;
+
+      for (const alt of alts) {
+        const raw = alt.transcript.trim();
+        const num = parseSpokenNumber(raw);
+        if (num !== null) { _done = true; onResult(num, raw); return; }
       }
+      _done = true;
+      onError(`"${alts[0]?.transcript ?? ''}" — 숫자를 인식하지 못했습니다.`);
+      return;
     }
-    // None of the alternatives matched
-    const best = alts[0]?.transcript ?? '';
-    onError(`"${best}" — 숫자를 인식하지 못했습니다.`);
   };
 
   _recognition.onerror = (event) => {
+    if (_done) return;
     const msgs = {
       'no-speech':   '소리가 감지되지 않았습니다.',
       'not-allowed': '마이크 권한을 허용해 주세요.',
@@ -51,7 +63,15 @@ export function startListening(onResult, onError) {
     if (msg) onError(msg);
   };
 
-  _recognition.onend = () => { _recognition = null; };
+  // Fallback: if stop() was called before isFinal fired, try last captured text
+  _recognition.onend = () => {
+    if (!_done && _lastRaw) {
+      const num = parseSpokenNumber(_lastRaw);
+      if (num !== null) onResult(num, _lastRaw);
+      else onError(`"${_lastRaw}" — 숫자를 인식하지 못했습니다.`);
+    }
+    _recognition = null;
+  };
 
   try {
     _recognition.start();
