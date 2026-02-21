@@ -116,6 +116,7 @@ export function renderLobby(room, myPlayerId, handlers) {
       <div class="screen-header">
         <h2>🏠 대기실</h2>
         <span class="room-badge">${room.id}</span>
+        ${isHost ? '<button id="close-room-btn" class="btn btn-danger btn-sm" title="방 닫기">✕ 닫기</button>' : ''}
       </div>
 
       ${isHost ? `
@@ -154,7 +155,7 @@ export function renderLobby(room, myPlayerId, handlers) {
           <div class="setting-row">
             <label>보드 크기</label>
             <div class="seg-ctrl" id="board-size-seg">
-              ${[3,4,5].map(s => `
+              ${[3, 4, 5].map(s => `
                 <button class="seg-btn ${(room.settings?.boardSize ?? 5) === s ? 'active' : ''}" data-val="${s}">${s}×${s}</button>
               `).join('')}
             </div>
@@ -179,6 +180,7 @@ export function renderLobby(room, myPlayerId, handlers) {
   if (isHost) {
     generateQR('qr-container', roomUrl);
     document.getElementById('copy-btn').onclick = handlers.onCopyCode;
+    document.getElementById('close-room-btn')?.addEventListener('click', handlers.onCloseRoom);
 
     // Board size segmented control
     document.getElementById('board-size-seg').addEventListener('click', e => {
@@ -247,6 +249,7 @@ export function renderSetup(room, myPlayerId, handlers) {
       <div class="screen-header">
         <h2>📋 보드 배치</h2>
         <span class="ready-badge">${readyCount}/${players.length} 준비</span>
+        ${room.host === myPlayerId ? '<button id="close-room-btn" class="btn btn-danger btn-sm" title="방 닫기">✕ 닫기</button>' : ''}
       </div>
 
       <p class="setup-hint">
@@ -287,8 +290,12 @@ export function renderSetup(room, myPlayerId, handlers) {
     </div>
   `;
 
-  if (isReady) return;
+  if (isReady) {
+    document.getElementById('close-room-btn')?.addEventListener('click', handlers.onCloseRoom);
+    return;
+  }
 
+  document.getElementById('close-room-btn')?.addEventListener('click', handlers.onCloseRoom);
   bindSetupEvents(size, total, placedSet, handlers);
 }
 
@@ -406,12 +413,13 @@ export function renderGame(room, myPlayerId, handlers) {
           ${isMyTurn ? '🎯 내 차례!' : `${escHtml(players[currentTurnId]?.name ?? '')}님 차례`}
         </div>
         <div class="bingo-pill">🎊 ${myBingo}/${winCondition}</div>
+        ${room.host === myPlayerId ? '<button id="close-room-btn" class="btn btn-danger btn-sm btn-close-game" title="방 닫기">✕</button>' : ''}
       </div>
 
       <div class="called-strip" id="called-strip">
         ${calledNumbers.length === 0
-          ? '<span class="no-calls">아직 호출 없음</span>'
-          : calledNumbers.map((n, i) => `
+      ? '<span class="no-calls">아직 호출 없음</span>'
+      : calledNumbers.map((n, i) => `
               <span class="called-num ${i === calledNumbers.length - 1 ? 'latest' : ''}">${n}</span>
             `).join('')}
       </div>
@@ -420,12 +428,12 @@ export function renderGame(room, myPlayerId, handlers) {
         ${board ? `
           <div class="board-grid game-board" style="--size:${size}">
             ${board.flat().map((num, idx) => {
-              const r = Math.floor(idx / size);
-              const c = idx % size;
-              const marked = calledNumbers.includes(num);
-              const inLine = marked && isCellInBingoLine(board, calledNumbers, r, c);
-              return `<div class="board-cell game-cell ${marked ? 'marked' : ''} ${inLine ? 'bingo' : ''}">${num}</div>`;
-            }).join('')}
+        const r = Math.floor(idx / size);
+        const c = idx % size;
+        const marked = calledNumbers.includes(num);
+        const inLine = marked && isCellInBingoLine(board, calledNumbers, r, c);
+        return `<div class="board-cell game-cell ${marked ? 'marked' : ''} ${inLine ? 'bingo' : ''}">${num}</div>`;
+      }).join('')}
           </div>
         ` : '<div class="no-board">보드 없음</div>'}
       </div>
@@ -445,7 +453,7 @@ export function renderGame(room, myPlayerId, handlers) {
       <div class="rank-list glass-card">
         ${ranked.map((p, i) => `
           <div class="rank-row ${p.isMe ? 'is-me' : ''}">
-            <span class="rank-medal">${['🥇','🥈','🥉'][i] ?? `${i+1}위`}</span>
+            <span class="rank-medal">${['🥇', '🥈', '🥉'][i] ?? `${i + 1}위`}</span>
             <span class="rank-name">${escHtml(p.name)}</span>
             <span class="rank-score">${p.bingo}줄</span>
           </div>
@@ -464,6 +472,8 @@ export function renderGame(room, myPlayerId, handlers) {
       if (btn && !btn.disabled) handlers.onCallNumber(parseInt(btn.dataset.num));
     });
   }
+
+  document.getElementById('close-room-btn')?.addEventListener('click', handlers.onCloseRoom);
 
   _prevCalledLen = calledNumbers.length;
 }
@@ -496,7 +506,7 @@ export function renderResult(room, myPlayerId, handlers) {
         <h3>최종 순위</h3>
         ${ranked.map((p, i) => `
           <div class="final-row ${p.isMe ? 'is-me' : ''} ${p.pid === room.winner ? 'is-winner' : ''}">
-            <span class="final-medal">${['🥇','🥈','🥉'][i] ?? `${i+1}위`}</span>
+            <span class="final-medal">${['🥇', '🥈', '🥉'][i] ?? `${i + 1}위`}</span>
             <span>${escHtml(p.name)}</span>
             <span>${p.bingo}줄</span>
           </div>
@@ -534,7 +544,7 @@ export function showToast(msg, duration = 3000) {
 // ─── Confetti ─────────────────────────────────────────────────────────────────
 
 function spawnConfetti() {
-  const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff922b','#cc5de8'];
+  const colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff922b', '#cc5de8'];
   for (let i = 0; i < 60; i++) {
     const el = document.createElement('div');
     el.className = 'confetti';
@@ -556,6 +566,6 @@ function spawnConfetti() {
 
 function escHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[c]));
 }

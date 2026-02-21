@@ -4,7 +4,7 @@
 import {
   getRoom, onRoomChange, setupOnDisconnect, reconnectPlayer,
   updateRoom, submitBoard, callNumber, advanceTurn, setWinner,
-  startGame, startPlaying, restartGame,
+  startGame, startPlaying, restartGame, deleteRoom,
 } from './db.js';
 import { createNewRoom, joinExistingRoom } from './room.js';
 import { countBingoLines, normalizeArray, normalizeBoard } from './game.js';
@@ -144,7 +144,9 @@ function showJoin(roomId) {
         saveSession(roomId, playerId, name);
         setupOnDisconnect(roomId, playerId);
         playJoin();
-        navigate(`/lobby/${roomId}`);
+        // We're already at #/lobby/roomId so hashchange won't fire.
+        // Directly call showLobby to set up the Firebase listener.
+        await showLobby(roomId);
       } catch (e) {
         showToast('참가 실패: ' + e.message);
       }
@@ -175,14 +177,15 @@ async function showLobby(roomId) {
     State.room = room;
     if (!room) { clearSession(); navigate('/'); return; }
 
-    if (room.status === 'setup')     { navigate(`/setup/${roomId}`); return; }
-    if (room.status === 'playing')   { navigate(`/game/${roomId}`); return; }
-    if (room.status === 'finished')  { navigate(`/result/${roomId}`); return; }
+    if (room.status === 'setup') { navigate(`/setup/${roomId}`); return; }
+    if (room.status === 'playing') { navigate(`/game/${roomId}`); return; }
+    if (room.status === 'finished') { navigate(`/result/${roomId}`); return; }
 
     renderLobby(room, State.playerId, {
       onStartGame: () => actionStartGame(roomId, room),
-      onCopyCode:  () => copyCode(roomId),
+      onCopyCode: () => copyCode(roomId),
       onSettingsChange: settings => updateRoom(roomId, { settings }),
+      onCloseRoom: () => actionCloseRoom(roomId),
     });
   });
 }
@@ -208,9 +211,9 @@ async function showSetup(roomId) {
     State.room = room;
     if (!room) { clearSession(); navigate('/'); return; }
 
-    if (room.status === 'waiting')   { navigate(`/lobby/${roomId}`); return; }
-    if (room.status === 'playing')   { navigate(`/game/${roomId}`); return; }
-    if (room.status === 'finished')  { navigate(`/result/${roomId}`); return; }
+    if (room.status === 'waiting') { navigate(`/lobby/${roomId}`); return; }
+    if (room.status === 'playing') { navigate(`/game/${roomId}`); return; }
+    if (room.status === 'finished') { navigate(`/result/${roomId}`); return; }
 
     // Host auto-starts when all players are ready
     if (room.host === State.playerId && !State.startingGame) {
@@ -224,6 +227,7 @@ async function showSetup(roomId) {
 
     renderSetup(room, State.playerId, {
       onBoardReady: board => actionSubmitBoard(roomId, board),
+      onCloseRoom: () => actionCloseRoom(roomId),
     });
   });
 }
@@ -250,7 +254,7 @@ async function showGame(roomId) {
     State.room = room;
     if (!room) { clearSession(); navigate('/'); return; }
 
-    if (room.status === 'waiting')  { navigate(`/lobby/${roomId}`); return; }
+    if (room.status === 'waiting') { navigate(`/lobby/${roomId}`); return; }
     if (room.status === 'finished') { navigate(`/result/${roomId}`); return; }
 
     const called = normalizeArray(room.calledNumbers);
@@ -281,6 +285,7 @@ async function showGame(roomId) {
 
     renderGame(room, State.playerId, {
       onCallNumber: num => actionCallNumber(roomId, num),
+      onCloseRoom: () => actionCloseRoom(roomId),
     });
   });
 }
@@ -361,6 +366,13 @@ async function actionCallNumber(roomId, number) {
 async function actionRestart(roomId) {
   resetSetupState();
   await restartGame(roomId);
+}
+
+async function actionCloseRoom(roomId) {
+  if (!confirm('정말 방을 닫으시겠습니까?\n모든 플레이어가 퇴장됩니다.')) return;
+  await deleteRoom(roomId);
+  clearSession();
+  navigate('/');
 }
 
 // ─── Util ─────────────────────────────────────────────────────────────────────

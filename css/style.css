@@ -691,6 +691,19 @@ body {
 }
 .btn-ghost:hover { background: rgba(255,255,255,0.05); }
 
+.btn-danger {
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.4);
+  color: var(--danger);
+}
+.btn-danger:hover { background: rgba(239,68,68,0.25); }
+
+.btn-close-game {
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  min-width: auto;
+}
+
 .btn.disabled, .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;

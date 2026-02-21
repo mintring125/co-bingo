@@ -1,6 +1,6 @@
 import { db } from './firebase-config.js';
 import {
-  ref, set, get, update, onValue, onDisconnect,
+  ref, set, get, update, remove, onValue, onDisconnect,
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -49,6 +49,10 @@ export async function createRoom(roomId, hostId, hostName, settings = {}) {
 export async function getRoom(roomId) {
   const snap = await get(roomRef(roomId));
   return snap.exists() ? snap.val() : null;
+}
+
+export async function deleteRoom(roomId) {
+  await remove(roomRef(roomId));
 }
 
 export async function joinRoom(roomId, playerId, playerName) {
